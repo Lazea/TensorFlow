@@ -2,13 +2,14 @@
 
 from os import makedirs, path
 import tensorflow as tf
+import numpy as np
 
 # Data functions
 def load_model_params(filepath):
     """Loads model values from path"""
     return np.load(filepath)
 
-def save_model_params(filepath, path):
+def save_model_params(params, filepath):
     """Saves model values to path"""
     filepath_dir = path.dirname(filepath)
     if not path.exists(filepath_dir):

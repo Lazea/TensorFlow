@@ -14,14 +14,27 @@ class AlexNet(Model):
         super(AlexNet, self).__init__(params_path)
         self.input_size = [input_size_w, input_size_h or input_size_w]
         self.class_count = class_count
+        self.dropout_prob = tf.placeholder(tf.float32)
 
         self.create(self.params)
 
+    def save_params(self, sess, filepath):
+        """Evaluates model params and saves them to file"""
+        values = []
+        for i in range(self.params.shape[0]):
+            row_values = []
+            for j in range(self.params.shape[1]):
+                value = self.params[i][j].eval(sess)
+                row_values.append(value)
+            values.append(row_values)
+
+        super(AlexNet, self).save_params(values, filepath)
+
     def create(self, params):
         # Input layer
-        x = tf.placeholder(tf.float32,
+        self.x = tf.placeholder(tf.float32,
                            [None,self.input_size[0] * self.input_size[1]])
-        x_img = tf.reshape(x, [-1,self.input_size[0],self.input_size[1],1])
+        x_img = tf.reshape(self.x, [-1,self.input_size[0],self.input_size[1],1])
         print('Input:', x_img.get_shape())
 
         # Conv2D layer 1
@@ -58,8 +71,7 @@ class AlexNet(Model):
         fc6 = fc_layer(pool5_flat, fc6_W, fc6_b, name='fc6')
         print('FC6:', fc6.get_shape())
 
-        dropout = tf.placeholder(tf.float32)
-        fc6_dropout = tf.nn.dropout(fc6, dropout)
+        fc6_dropout = tf.nn.dropout(fc6, self.dropout_prob)
 
         # FC layer 7
         fc7_W = weights_var([1024,512])
@@ -67,16 +79,16 @@ class AlexNet(Model):
         fc7 = fc_layer(fc6_dropout, fc7_W, fc7_b, name='fc7')
         print('FC7:', fc7.get_shape())
 
-        fc7_dropout = tf.nn.dropout(fc7, dropout)
+        fc7_dropout = tf.nn.dropout(fc7, self.dropout_prob)
 
         # Logits layer
         logits_W = weights_var([512,self.class_count])
         logits_b = biases_var([self.class_count])
-        y = tf.matmul(fc7_dropout, logits_W, name='logits') + logits_b
-        print('Logits:', y.get_shape())
+        self.y = tf.matmul(fc7_dropout, logits_W, name='logits') + logits_b
+        print('Logits:', self.y.get_shape())
 
         # True labels
-        y_ = tf.placeholder(tf.float32, [None,self.class_count])
+        self.y_ = tf.placeholder(tf.float32, [None,self.class_count])
 
         # Loads/instantiates weights and biases
         if self.params != None:
@@ -90,6 +102,7 @@ class AlexNet(Model):
                                     conv3_b, conv4_b,
                                     conv5_b, fc6_b,
                                     fc7_b, logits_b])
+            self.params = np.array([self.weights, self.biases])
 
 def get_model(class_count):
     return AlexNet(class_count)

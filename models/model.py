@@ -13,8 +13,10 @@ class Model:
             self.params = None
 
         self.input_size = None
+        self.x = None
         self.weights = None
         self.biases = None
+        self.y = None
 
     def load_params(self, path):
         return model_utils.load_model_params(path)
