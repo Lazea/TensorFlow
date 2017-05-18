@@ -19,14 +19,14 @@ def optimization(learning_rate, loss):
     """Defines the optimization operation"""
     return tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
-def cross_entropy(y, y_):
+def cross_entropy(logits, labels):
     """Defines loss function"""
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y)
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=logits)
     return tf.reduce_mean(cross_entropy)
 
-def compute_accuracy(y, y_):
+def compute_accuracy(logits, labels):
     """Computes classification accuracy"""
-    correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
+    correct_prediction = tf.equal(tf.argmax(logits,1), tf.argmax(labels,1))
     return tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 def main():
@@ -41,6 +41,9 @@ def main():
     # Loads config file
     config = json.load(open(args.model_config_file, 'r'))
     model_name = config['model']
+    input_size_w = config['input_size']['x']
+    input_size_h = config['input_size']['y']
+    input_channels = config['input_size']['channel']
     class_count = config['class_count']
     batch_size = config['batch_size']
     dropout = config['dropout']
@@ -52,16 +55,21 @@ def main():
 
     # Snapshot setup
     snapshot_filename = model_name + '.npy'
-    snapshot_path = os.path.join(args.model_snapshot_dir, model_name, snapshot_filename)
+    snapshot_path = os.path.join(args.model_snapshot_dir,
+                                 model_name,
+                                 snapshot_filename)
 
     # Importing and creating model
     model_module = importlib.import_module(model_name)
-    model = model_module.get_model(class_count)
+    model = model_module.get_model(class_count,
+                                   input_size_w=input_size_w,
+                                   input_size_h=input_size_h,
+                                   is_training=True)
 
     # Define loss, training, and validation functions
-    loss = cross_entropy(model.y, model.y_)
+    loss = cross_entropy(model.logits, model.labels)
     train_step = optimization(args.learning_rate, loss)
-    accuracy = compute_accuracy(model.y, model.y_)
+    accuracy = compute_accuracy(model.logits, model.labels)
 
     # Session and variable initialization
     sess = tf.InteractiveSession()
@@ -73,11 +81,11 @@ def main():
     elapsed_time = 0.0
     initial_time = time.time()
     for i in range(args.num_iters):
-        i+=1
+        i += 1
 
         train_images, train_labels = train_data.next_batch(batch_size)
         train_step.run(feed_dict={model.x: train_images,
-                                  model.y_: train_labels,
+                                  model.labels: train_labels,
                                   model.dropout_prob: dropout})
 
         if i % 100 == 0:
@@ -89,8 +97,8 @@ def main():
         if i % 500 == 0:
             valid_images, valid_labels = valid_data.next_batch(batch_size)
             acc = accuracy.eval(feed_dict={model.x: valid_images,
-                                           model.y_: valid_labels,
-                                           model.dropout_prob: dropout})
+                                           model.labels: valid_labels,
+                                           model.dropout_prob: 1.0})
             print('Training accuracy: {0:.2f}%'.format(acc * 100))
             print('Saving snapshot to', snapshot_path)
             model.save_params(sess, snapshot_path)

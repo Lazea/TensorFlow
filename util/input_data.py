@@ -1,4 +1,4 @@
-"""Data util script for managing and processing data"""
+"""Data util script for managing and processing data."""
 
 import os
 import numpy as np
@@ -8,29 +8,40 @@ class Data:
     def __init__(self):
         self.offset = 0
         self.data = None
+        self.count = 0
 
     def __init__(self, filepath):
         self.offset = 0
-        self.load_data(filepath)
+        self.count = 0
+        self.data = self.load_data(filepath)
 
     def load_data(self, filepath):
         self.data = np.load(filepath)
+        self.count = self.data.shape[0]
+
+        return np.load(filepath)
 
     def save_data(self, filepath):
         np.save(filepath, self.data)
 
-    def get_data(self):
-        return np.array([row[0] for row in self.data])
+    def get_data(self, shape=None):
+        """Returns input data. Can be returned in desired shape."""
+        data = np.array([row[0] for row in self.data])
+        if shape != None:
+            return np.array([np.reshape(data_point, shape)for data_point in data])
+        else:
+            return data
 
     def get_labels(self):
+        """Returns data labels."""
         return np.array([row[1] for row in self.data])
 
     def shuffle_data(self):
-        """Shuffles the data along axis=0"""
+        """Shuffles the data along axis=0."""
         np.random.shuffle(self.data)
 
     def next_batch(self, batch_size):
-        """Returns the next data batch of size batch_size"""
+        """Returns the next data batch of size batch_size."""
         data_points = []
         labels = []
         for i in range(batch_size):

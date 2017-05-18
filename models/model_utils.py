@@ -18,15 +18,21 @@ def save_model_params(params, filepath):
     np.save(filepath, params)
 
 # Variable functions
-def weights_var(shape):
+def weights_var(value=None, shape=None):
     """Weights tensor"""
-    initial = tf.truncated_normal(shape, stddev=0.1)
-    return tf.Variable(initial)
+    if value != None:
+        return tf.Variable(value)
+    if shape != None:
+        initial = tf.truncated_normal(shape, stddev=0.1)
+        return tf.Variable(initial)
 
-def biases_var(shape):
+def biases_var(value=None, shape=None):
     """Biases tensor"""
-    initial = tf.constant(0.1, shape=shape)
-    return tf.Variable(initial)
+    if value != None:
+        return tf.Variable(value)
+    if shape != None:
+        initial = tf.constant(0.1, shape=shape)
+        return tf.Variable(initial)
 
 # Layer functions
 def conv2D(x, W, name=None):
